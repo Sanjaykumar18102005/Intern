@@ -4,27 +4,20 @@ from utils.vectorstore import build_vectorstore, load_vectorstore
 from utils.qa_pipeline import build_qa_pipeline
 import shutil
 import os
-import tempfile
 
 app = FastAPI()
 
-VECTORSTORE_PATH = "/tmp/vectorstore"  # Use /tmp for serverless writable storage
-
-# Ensure vectorstore folder exists
-os.makedirs(VECTORSTORE_PATH, exist_ok=True)
+VECTORSTORE_PATH = "vectorstore"
 
 @app.post("/upload_pdf/")
 async def upload_pdf(file: UploadFile = File(...)):
-    # Use a secure temporary file
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-        shutil.copyfileobj(file.file, temp_file)
-        temp_file_path = temp_file.name
+    temp_file = f"temp/{file.filename}"
+    os.makedirs("temp", exist_ok=True)
+    with open(temp_file, "wb") as f:
+        shutil.copyfileobj(file.file, f)
 
-    # Build vectorstore from uploaded PDF
-    build_vectorstore(temp_file_path, VECTORSTORE_PATH)
-
+    build_vectorstore(temp_file, VECTORSTORE_PATH)
     return {"message": "Vectorstore built successfully."}
-
 
 @app.post("/ask/")
 async def ask_question(query: str):
